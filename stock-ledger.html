@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Stock Ledger">
+<meta name="theme-color" content="#211D18">
+<title>Stock Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F0E9DA; --paper-dk:#E4DAC4; --ink:#211D18; --ink-soft:#5B564C;
+    --barn-red:#A23B2E; --barn-red-dk:#7E2E23; --olive:#5C6B3F; --olive-dk:#46512F;
+    --mustard:#C8922E; --line:rgba(33,29,24,0.14); --card:#FBF8F1;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  body{margin:0; background:var(--paper); color:var(--ink); font-family:'Inter',sans-serif; padding-bottom:90px;}
+  h1,h2,h3{font-family:'Fraunces',serif; margin:0;}
+
+  /* header */
+  .hero{background:var(--ink); color:var(--paper); padding:22px 18px 18px;}
+  .hero-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+  .hero h1{font-size:26px; font-weight:700; letter-spacing:-0.3px;}
+  .hero .eyebrow{font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:1.5px; text-transform:uppercase; color:var(--mustard); margin-bottom:4px; display:block;}
+  .csv-btn{background:transparent; border:1.5px solid rgba(240,233,218,0.35); color:var(--paper); border-radius:8px; padding:8px 12px; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.5px;}
+
+  .stat-row{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:16px;}
+  .stat{background:rgba(240,233,218,0.08); border:1px solid rgba(240,233,218,0.18); border-radius:10px; padding:10px 8px; text-align:center;}
+  .stat b{display:block; font-size:19px; font-family:'Fraunces',serif;}
+  .stat span{font-size:9.5px; text-transform:uppercase; letter-spacing:0.6px; color:rgba(240,233,218,0.65); font-family:'IBM Plex Mono',monospace;}
+  .stat.ld b{color:var(--mustard);}
+
+  /* tabs */
+  .tabbar{display:flex; background:var(--paper-dk); position:sticky; top:0; z-index:20; border-bottom:1px solid var(--line);}
+  .tabbar button{flex:1; background:none; border:none; padding:12px 4px; font-family:'Inter',sans-serif; font-size:12.5px; font-weight:600; color:var(--ink-soft); border-bottom:2.5px solid transparent;}
+  .tabbar button.active{color:var(--barn-red); border-bottom-color:var(--barn-red);}
+
+  .view{display:none; padding:14px 16px 10px;}
+  .view.active{display:block;}
+
+  /* search + filters */
+  .search-wrap{position:relative; margin-bottom:10px;}
+  .search-wrap input{width:100%; padding:11px 12px; border-radius:9px; border:1.5px solid var(--line); background:var(--card); font-size:14.5px; font-family:'Inter',sans-serif;}
+  .chip-row{display:flex; gap:7px; margin-bottom:12px; overflow-x:auto;}
+  .chip{font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.3px; padding:6px 12px; border-radius:20px; border:1.3px solid var(--line); background:var(--card); white-space:nowrap; color:var(--ink-soft);}
+  .chip.active{background:var(--ink); color:var(--paper); border-color:var(--ink);}
+
+  /* product card */
+  .pcard{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:13px 14px; margin-bottom:9px;}
+  .pcard-top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
+  .pcard-top .pname{font-size:15px; font-weight:600; line-height:1.25;}
+  .co-tag{font-family:'IBM Plex Mono',monospace; font-size:9px; font-weight:600; letter-spacing:0.4px; text-transform:uppercase; padding:2px 7px; border-radius:5px; display:inline-block; margin-top:4px;}
+  .co-tag.innova{background:rgba(92,107,63,0.15); color:var(--olive-dk);}
+  .co-tag.comega{background:rgba(162,59,46,0.12); color:var(--barn-red-dk);}
+  .qty-block{text-align:right; flex-shrink:0;}
+  .qty-block .num{font-family:'Fraunces',serif; font-size:20px; font-weight:700;}
+  .qty-block .lbl{font-size:9px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-soft); font-family:'IBM Plex Mono',monospace;}
+  .ld-badge{margin-top:5px; display:inline-block; background:rgba(200,146,46,0.16); color:#8a6a1f; font-family:'IBM Plex Mono',monospace; font-size:9.5px; font-weight:600; padding:2px 7px; border-radius:5px;}
+  .pcard-actions{display:flex; gap:7px; margin-top:10px;}
+  .pcard-actions button{flex:1; padding:8px 4px; border-radius:7px; font-size:12px; font-weight:600; border:none; font-family:'Inter',sans-serif;}
+  .btn-in{background:rgba(92,107,63,0.12); color:var(--olive-dk);}
+  .btn-out{background:rgba(162,59,46,0.1); color:var(--barn-red-dk);}
+  .btn-ld{background:rgba(200,146,46,0.14); color:#8a6a1f;}
+  .btn-del{background:rgba(162,59,46,0.1); color:var(--barn-red-dk); flex:0 0 auto !important; padding:8px 12px !important;}
+  .hist-del{background:none; border:none; color:var(--barn-red-dk); font-size:11px; font-weight:600; font-family:'IBM Plex Mono',monospace; padding:4px 8px; letter-spacing:0.3px;}
+
+  /* combobox */
+  .field{margin-bottom:13px;}
+  .field label{display:block; font-size:12px; font-weight:600; color:var(--ink-soft); margin-bottom:5px;}
+  .field input, .field select{width:100%; padding:11px 12px; border-radius:8px; border:1.5px solid var(--line); font-size:14.5px; font-family:'Inter',sans-serif; background:var(--card); color:var(--ink);}
+  .field input:focus, .field select:focus{outline:2px solid var(--barn-red); outline-offset:1px; border-color:transparent;}
+  .combo{position:relative;}
+  .combo-list{position:absolute; top:100%; left:0; right:0; background:var(--card); border:1.5px solid var(--line); border-top:none; border-radius:0 0 9px 9px; max-height:220px; overflow-y:auto; z-index:30; display:none; box-shadow:0 8px 18px rgba(0,0,0,0.12);}
+  .combo-list.open{display:block;}
+  .combo-item{padding:10px 12px; font-size:13.5px; border-bottom:1px solid var(--line); cursor:pointer;}
+  .combo-item:last-child{border-bottom:none;}
+  .combo-item .ci-name{font-weight:500;}
+  .combo-item .ci-meta{font-size:10.5px; color:var(--ink-soft); font-family:'IBM Plex Mono',monospace; margin-top:2px;}
+  .selected-box{margin-top:8px; padding:10px 12px; background:rgba(92,107,63,0.08); border:1px solid rgba(92,107,63,0.25); border-radius:8px; font-size:13px; display:none;}
+  .selected-box.show{display:block;}
+  .selected-box b{font-family:'Fraunces',serif; font-size:15px;}
+
+  .form-card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px;}
+  .form-card h3{font-size:16px; margin-bottom:2px;}
+  .form-card p.sub{font-size:12px; color:var(--ink-soft); margin:2px 0 16px;}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .submit-btn{width:100%; padding:13px; border-radius:9px; border:none; font-size:15px; font-weight:700; font-family:'Inter',sans-serif; margin-top:6px;}
+  .submit-btn.in{background:var(--olive); color:#fff;}
+  .submit-btn.out{background:var(--barn-red); color:#fff;}
+  .submit-btn:disabled{opacity:0.5;}
+  .avail-note{font-size:12px; color:var(--ink-soft); margin-top:-6px; margin-bottom:12px;}
+  .avail-note b{color:var(--ink);}
+
+  .add-item-btn{width:100%; padding:11px; border-radius:8px; border:1.5px dashed var(--ink-soft); background:transparent; color:var(--ink); font-weight:600; font-size:13px;}
+  .cart-list{margin:10px 0 4px;}
+  .cart-item{display:flex; justify-content:space-between; align-items:center; background:var(--paper-dk); border-radius:8px; padding:9px 12px; margin-bottom:6px;}
+  .cart-item .ci-info b{display:block; font-size:13.5px;}
+  .cart-item .ci-info{display:flex; flex-direction:column; align-items:flex-start; gap:2px;}
+  .cart-item .ci-info span:not(.co-tag){font-size:11px; color:var(--ink-soft); font-family:'IBM Plex Mono',monospace;}
+  .cart-item .ci-remove{background:none; border:none; color:var(--barn-red-dk); font-size:20px; font-weight:700; padding:2px 6px; line-height:1;}
+  .cart-empty{font-size:12.5px; color:var(--ink-soft); text-align:center; padding:10px 0; font-style:italic;}
+  .section-divider{border:none; border-top:1px dashed var(--line); margin:18px 0 14px;}
+
+  /* history */
+  .hist-item{background:var(--card); border:1px solid var(--line); border-radius:11px; padding:12px 13px; margin-bottom:8px;}
+  .hist-top{display:flex; justify-content:space-between; align-items:center;}
+  .hist-type{font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:700; letter-spacing:0.5px; padding:3px 8px; border-radius:5px;}
+  .hist-type.IN{background:rgba(92,107,63,0.15); color:var(--olive-dk);}
+  .hist-type.OUT{background:rgba(162,59,46,0.13); color:var(--barn-red-dk);}
+  .hist-type.LD{background:rgba(200,146,46,0.16); color:#8a6a1f;}
+  .hist-date{font-size:10.5px; color:var(--ink-soft); font-family:'IBM Plex Mono',monospace;}
+  .hist-pname{font-weight:600; margin-top:7px; font-size:14px;}
+  .hist-qty{font-family:'Fraunces',serif; font-weight:700;}
+  .hist-details{margin-top:7px; padding-top:7px; border-top:1px dashed var(--line); font-size:12px; color:var(--ink-soft); display:grid; grid-template-columns:1fr 1fr; gap:4px 10px;}
+  .hist-details span b{color:var(--ink); font-weight:600;}
+  .hist-delete{margin-top:10px; width:100%; padding:8px; border-radius:7px; border:1.3px solid rgba(162,59,46,0.35); background:transparent; color:var(--barn-red-dk); font-size:12px; font-weight:600; font-family:'Inter',sans-serif;}
+  .empty{text-align:center; padding:40px 20px; color:var(--ink-soft);}
+  .empty .big{font-size:34px; margin-bottom:8px;}
+
+  .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink); color:var(--paper); padding:11px 20px; border-radius:24px; font-size:13.5px; font-weight:500; box-shadow:0 6px 20px rgba(0,0,0,0.25); z-index:100; opacity:0; transition:opacity 0.25s;}
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-top">
+    <div>
+      <span class="eyebrow">Innova &amp; Comega</span>
+      <h1>Stock Ledger</h1>
+    </div>
+    <button class="csv-btn" id="exportBtn">Export CSV</button>
+  </div>
+  <div class="stat-row">
+    <div class="stat"><b id="statProducts">0</b><span>Products</span></div>
+    <div class="stat"><b id="statUnits">0</b><span>Total Units</span></div>
+    <div class="stat ld"><b id="statLD">0</b><span>Leak &amp; Damage</span></div>
+  </div>
+</div>
+
+<div class="tabbar">
+  <button class="tab-btn active" data-tab="products">Products</button>
+  <button class="tab-btn" data-tab="stockin">Stock In</button>
+  <button class="tab-btn" data-tab="dispatch">Dispatch</button>
+  <button class="tab-btn" data-tab="history">History</button>
+</div>
+
+<!-- PRODUCTS -->
+<div class="view active" id="view-products">
+  <div class="search-wrap">
+    <input type="text" id="prodSearch" placeholder="Search product...">
+  </div>
+  <div class="chip-row" id="companyChips">
+    <div class="chip active" data-co="All">All</div>
+    <div class="chip" data-co="Innova">Innova</div>
+    <div class="chip" data-co="Comega">Comega</div>
+  </div>
+  <div id="productList"></div>
+</div>
+
+<!-- STOCK IN -->
+<div class="view" id="view-stockin">
+  <div class="form-card">
+    <h3>Stock In</h3>
+    <p class="sub">Ek delivery mein multiple products aa sakte hain — sab add karein, phir ek sath confirm karein.</p>
+    <div class="field combo">
+      <label>Add Product</label>
+      <input type="text" id="inSearch" placeholder="Type product name...">
+      <div class="combo-list" id="inComboList"></div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Quantity</label>
+        <input type="number" id="inQty" min="1" placeholder="e.g. 100">
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button class="add-item-btn" id="inAddItem">+ Add to List</button>
+      </div>
+    </div>
+    <div class="cart-list" id="inCartList"></div>
+    <hr class="section-divider">
+    <div class="field">
+      <label>Date</label>
+      <input type="date" id="inDate">
+    </div>
+    <div class="field">
+      <label>Note (optional)</label>
+      <input type="text" id="inNote" placeholder="e.g. Purchase from factory">
+    </div>
+    <button class="submit-btn in" id="inSubmit" disabled>Add Stock (<span id="inCartCount">0</span> items)</button>
+  </div>
+</div>
+
+<!-- DISPATCH -->
+<div class="view" id="view-dispatch">
+  <div class="form-card">
+    <h3>Dispatch (Stock Out)</h3>
+    <p class="sub">Ek vehicle mein multiple products ja sakte hain — sab add karein, phir dealer/vehicle details ek baar bharein.</p>
+    <div class="field combo">
+      <label>Add Product</label>
+      <input type="text" id="outSearch" placeholder="Type product name...">
+      <div class="combo-list" id="outComboList"></div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Quantity</label>
+        <input type="number" id="outQty" min="1" placeholder="e.g. 50">
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button class="add-item-btn" id="outAddItem">+ Add to List</button>
+      </div>
+    </div>
+    <p class="avail-note" id="availNote" style="display:none;"></p>
+    <div class="cart-list" id="outCartList"></div>
+    <hr class="section-divider">
+    <div class="field">
+      <label>Date</label>
+      <input type="date" id="outDate">
+    </div>
+    <div class="field">
+      <label>Dealer Name</label>
+      <input type="text" id="outDealer" placeholder="e.g. Ahmad Traders">
+    </div>
+    <div class="field">
+      <label>Territory</label>
+      <input type="text" id="outTerritory" placeholder="e.g. Sukkur North">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Vehicle Number</label>
+        <input type="text" id="outVehicle" placeholder="e.g. SKR-1234">
+      </div>
+      <div class="field">
+        <label>Driver Name</label>
+        <input type="text" id="outDriver" placeholder="e.g. Rasheed">
+      </div>
+    </div>
+    <div class="field">
+      <label>Driver Number</label>
+      <input type="tel" id="outDriverPhone" placeholder="e.g. 0300-1234567">
+    </div>
+    <button class="submit-btn out" id="outSubmit" disabled>Confirm Dispatch (<span id="outCartCount">0</span> items)</button>
+  </div>
+</div>
+
+<!-- HISTORY -->
+<div class="view" id="view-history">
+  <div class="search-wrap">
+    <input type="text" id="histSearch" placeholder="Search by product or dealer...">
+  </div>
+  <div class="chip-row" id="histChips">
+    <div class="chip active" data-type="All">All</div>
+    <div class="chip" data-type="IN">Stock In</div>
+    <div class="chip" data-type="OUT">Dispatch</div>
+    <div class="chip" data-type="LD">Leak/Damage</div>
+  </div>
+  <div id="historyList"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SEED_PRODUCTS = [{"id":"p1","name":"ARENA 25%WP - 250GM","company":"Innova","qty":95,"ld":0},{"id":"p2","name":"BAHAAR (U.P) 25KG","company":"Innova","qty":357,"ld":0},{"id":"p3","name":"BAHAR (MAP) 10KG","company":"Innova","qty":432,"ld":0},{"id":"p4","name":"BAHAR (SOP) 25KG","company":"Innova","qty":260,"ld":0},{"id":"p5","name":"BAHAR (SOP) GRANULE 25KG","company":"Innova","qty":307,"ld":0},{"id":"p6","name":"BARREL 0.4G 4KG","company":"Innova","qty":1220,"ld":0},{"id":"p7","name":"BARREL SUPER 11.6%SC 100ML","company":"Innova","qty":810,"ld":0},{"id":"p8","name":"BERMUDA 40% EC 400 ML","company":"Innova","qty":600,"ld":0},{"id":"p9","name":"BERMUDA 40% EC 800 ML","company":"Innova","qty":264,"ld":0},{"id":"p10","name":"BERMUDA ULTRA 25%OD 400 ML","company":"Innova","qty":84,"ld":0},{"id":"p11","name":"BIOTRON - 200 GM","company":"Innova","qty":762,"ld":0},{"id":"p12","name":"BOLAN 36%SC 200-ML","company":"Innova","qty":485,"ld":0},{"id":"p13","name":"BOLAN PLUS 20%SC - 500 ML","company":"Innova","qty":1752,"ld":0},{"id":"p14","name":"CAFTAN 4G 9KG","company":"Innova","qty":1447,"ld":0},{"id":"p15","name":"CARROL 50% WG 120GM","company":"Innova","qty":919,"ld":0},{"id":"p16","name":"CHANCELLER SUPER 21EC 1LTR","company":"Innova","qty":614,"ld":0},{"id":"p17","name":"COMMRADE 15% EC - 500 ML","company":"Innova","qty":940,"ld":0},{"id":"p18","name":"COTTON SEED GL-211 10KG","company":"Innova","qty":40,"ld":0},{"id":"p19","name":"CURE 1.8%EC - 1LTR","company":"Innova","qty":413,"ld":0},{"id":"p20","name":"DONOR 1LTR","company":"Innova","qty":1696,"ld":0},{"id":"p21","name":"DONOR 500 ML","company":"Innova","qty":1140,"ld":0},{"id":"p22","name":"GENGWEI GOLD 55%SC - 1LTR","company":"Innova","qty":571,"ld":0},{"id":"p23","name":"GLIMMER 70%WP - 400GM","company":"Innova","qty":279,"ld":0},{"id":"p24","name":"GRASTRA 20EC-800ML","company":"Innova","qty":348,"ld":0},{"id":"p25","name":"HAMPER 1 LTR","company":"Innova","qty":582,"ld":0},{"id":"p26","name":"HOPE STAR 47% WP 250GM","company":"Innova","qty":718,"ld":0},{"id":"p27","name":"INDUS PLUS 44%EC - 1LTR","company":"Innova","qty":420,"ld":0},{"id":"p28","name":"INDUS PLUS 44EC 800ML","company":"Innova","qty":468,"ld":0},{"id":"p29","name":"INNO CRUSH 30% 35ML","company":"Innova","qty":14,"ld":0},{"id":"p30","name":"INNO CRUSH 30%SC 50ML","company":"Innova","qty":423,"ld":0},{"id":"p31","name":"INNO POWER 4LTR","company":"Innova","qty":310,"ld":0},{"id":"p32","name":"INNOFUR 20% SC 250 ML","company":"Innova","qty":400,"ld":0},{"id":"p33","name":"INNOHIT 48%SL 1LTR","company":"Innova","qty":876,"ld":0},{"id":"p34","name":"INNOMAN 72WP 1KG","company":"Innova","qty":556,"ld":0},{"id":"p35","name":"INNOMAN SUPER 72WP 600GM","company":"Innova","qty":794,"ld":0},{"id":"p36","name":"INNOPHOS 50-KG","company":"Innova","qty":805,"ld":0},{"id":"p37","name":"INNOSUL 80%WG 1KG","company":"Innova","qty":847,"ld":0},{"id":"p38","name":"INNOSUL 80%WG 25KG","company":"Innova","qty":68,"ld":0},{"id":"p39","name":"INNOTASH 24 LTR","company":"Innova","qty":10,"ld":0},{"id":"p40","name":"INNOTASH 25LTR","company":"Innova","qty":50,"ld":0},{"id":"p41","name":"INNOTASH 4 LTR","company":"Innova","qty":78,"ld":0},{"id":"p42","name":"INNOTRON 20%SG 100GM","company":"Innova","qty":720,"ld":0},{"id":"p43","name":"INNOVA SSP 14% 50KG","company":"Innova","qty":9,"ld":0},{"id":"p44","name":"INNOWISH - 500 GM","company":"Innova","qty":980,"ld":0},{"id":"p45","name":"INNOWISH -1KG","company":"Innova","qty":1343,"ld":0},{"id":"p46","name":"INNOZAK GOLD 36 FS 200 ML","company":"Innova","qty":202,"ld":0},{"id":"p47","name":"JAGUAR 1.9%EC - 400ML","company":"Innova","qty":529,"ld":0},{"id":"p48","name":"JAGUAR 5%EC 150 ML","company":"Innova","qty":353,"ld":0},{"id":"p49","name":"JAGUAR 5%EC 75ML","company":"Innova","qty":180,"ld":0},{"id":"p50","name":"JAGUAR PLUS10%SC 150ML","company":"Innova","qty":420,"ld":0},{"id":"p51","name":"JOUSTER 36%WP 350GM","company":"Innova","qty":474,"ld":0},{"id":"p52","name":"KANAK GOLI 56% (TAB) 1.14 KG TIN","company":"Innova","qty":200,"ld":0},{"id":"p53","name":"KANAK GOLI 56%(TAB) 1.5KG","company":"Innova","qty":98,"ld":0},{"id":"p54","name":"MORTEM 5%G - 7KG","company":"Innova","qty":1111,"ld":0},{"id":"p55","name":"NARCO 15%WP 62.5GM","company":"Innova","qty":600,"ld":0},{"id":"p56","name":"NATAK 10%SL 400-ML","company":"Innova","qty":920,"ld":0},{"id":"p57","name":"NATAK PLUS 50% WDG 50-GM","company":"Innova","qty":587,"ld":0},{"id":"p58","name":"OVAL 10.8% EC - 500ML","company":"Innova","qty":702,"ld":0},{"id":"p59","name":"PARAGUARD 20%SL 1LTR","company":"Innova","qty":523,"ld":0},{"id":"p60","name":"PENDAL 0.4G 6KG","company":"Innova","qty":934,"ld":0},{"id":"p61","name":"PERIL PLUS 10.5%EC 1LTR (ALUM)","company":"Innova","qty":252,"ld":0},{"id":"p62","name":"PICK UP SMART 42% 1LTR","company":"Innova","qty":1928,"ld":0},{"id":"p63","name":"PICK UP SMART 42% 800ML","company":"Innova","qty":1318,"ld":0},{"id":"p64","name":"PICOGEN 60WG-100GM","company":"Innova","qty":240,"ld":0},{"id":"p65","name":"PRANCE 20 SL - 1LTR","company":"Innova","qty":81,"ld":0},{"id":"p66","name":"PROCAR 40%EC 1LTR","company":"Innova","qty":525,"ld":0},{"id":"p67","name":"PROCAR PLUS 18%CF 1LTR","company":"Innova","qty":732,"ld":0},{"id":"p68","name":"PULL UP 51.5% EC - 800ML","company":"Innova","qty":96,"ld":0},{"id":"p69","name":"PULL UP SMART 42%EC 1-LTR","company":"Innova","qty":696,"ld":0},{"id":"p70","name":"RAKISH 20%SC 250ML","company":"Innova","qty":1578,"ld":0},{"id":"p71","name":"SAGEST 10% EC 500-ML","company":"Innova","qty":589,"ld":0},{"id":"p72","name":"SAGEST 10% EC-1LTR","company":"Innova","qty":525,"ld":0},{"id":"p73","name":"SCUFF 18.7%WDG 250 GM","company":"Innova","qty":547,"ld":0},{"id":"p74","name":"SETTO 75%SP - 400 GM","company":"Innova","qty":385,"ld":0},{"id":"p75","name":"SETTO 75%SP - 800 GM","company":"Innova","qty":297,"ld":0},{"id":"p76","name":"SOHANA 200 LTR","company":"Innova","qty":3,"ld":0},{"id":"p77","name":"SOHANA 27LTR","company":"Innova","qty":50,"ld":0},{"id":"p78","name":"SOHANA 3LTR","company":"Innova","qty":495,"ld":0},{"id":"p79","name":"SOHANA EXTRA 3 KG","company":"Innova","qty":489,"ld":0},{"id":"p80","name":"SOHANA EXTRA 5 KG","company":"Innova","qty":201,"ld":0},{"id":"p81","name":"SPEAR 25%WP 900-GM","company":"Innova","qty":875,"ld":0},{"id":"p82","name":"STROB SUPER 32.5%SC 200ML","company":"Innova","qty":520,"ld":0},{"id":"p83","name":"STROB ULTRA 50%SC 200ML","company":"Innova","qty":517,"ld":0},{"id":"p84","name":"TEXAN 30% WDG 250 GM","company":"Innova","qty":1020,"ld":0},{"id":"p85","name":"TROOP 33% EC 1-LTR","company":"Innova","qty":548,"ld":0},{"id":"p86","name":"WESTA 30% WP 40-GM","company":"Innova","qty":12749,"ld":0},{"id":"p87","name":"WINSTA 30%WP 100GM-I","company":"Innova","qty":1228,"ld":0},{"id":"p88","name":"WINSTA 30%WP 50GM-I","company":"Innova","qty":1109,"ld":0},{"id":"p89","name":"ZEDLER 10% EC 62.5 ML","company":"Innova","qty":715,"ld":0},{"id":"p90","name":"ZEDLER 10%EC 250ML","company":"Innova","qty":199,"ld":0},{"id":"p91","name":"ZEDLER 2.5% EC 1 LTR","company":"Innova","qty":504,"ld":0},{"id":"p92","name":"ZEDLER SUPER 22%SC 80ML","company":"Innova","qty":960,"ld":0},{"id":"p93","name":"ZEDLER SUPER 22%SC-160ML","company":"Innova","qty":560,"ld":0},{"id":"p94","name":"ADDITOR 1.9%EC 400ML","company":"Comega","qty":1856,"ld":0},{"id":"p95","name":"ADDITOR 5%EC 150ML","company":"Comega","qty":440,"ld":0},{"id":"p96","name":"ADDITOR 5%EC 75ML","company":"Comega","qty":420,"ld":0},{"id":"p97","name":"ADDITOR PLUS 10%SC 150 ML","company":"Comega","qty":1520,"ld":0},{"id":"p98","name":"ANGLO 1 LTR","company":"Comega","qty":1659,"ld":0},{"id":"p99","name":"ANGLO 500 ML","company":"Comega","qty":1360,"ld":0},{"id":"p100","name":"ANZAK GOLD 36 FS 200 ML","company":"Comega","qty":709,"ld":0},{"id":"p101","name":"ARBITER 50%SC 400 ML","company":"Comega","qty":642,"ld":0},{"id":"p102","name":"BIFOLD SUPER 32.5%SC 200ML","company":"Comega","qty":1000,"ld":0},{"id":"p103","name":"BIFOLD ULTRA 50%SC 200ML","company":"Comega","qty":1097,"ld":16},{"id":"p104","name":"BOLAN 36%SC 200ML","company":"Comega","qty":1127,"ld":0},{"id":"p105","name":"BOLAN PLUS 20%SC 500 ML","company":"Comega","qty":341,"ld":0},{"id":"p106","name":"BUNCH 20%SL 250 ML","company":"Comega","qty":317,"ld":0},{"id":"p107","name":"BUNCH 20SP 250GM","company":"Comega","qty":88,"ld":0},{"id":"p108","name":"CARMEGA 4G 9-KG","company":"Comega","qty":2812,"ld":0},{"id":"p109","name":"CHOP UP 51.5%EC 800ML","company":"Comega","qty":3060,"ld":0},{"id":"p110","name":"CHOP UP SMART 42% EC 1LTR","company":"Comega","qty":2278,"ld":0},{"id":"p111","name":"CHOP UP SMART 42% EC 800ML","company":"Comega","qty":793,"ld":0},{"id":"p112","name":"CLUSTER 25%WP 900 GM","company":"Comega","qty":1219,"ld":0},{"id":"p113","name":"COME CRUSH 30% SC 50ML","company":"Comega","qty":426,"ld":0},{"id":"p114","name":"COME POWER 200LTR","company":"Comega","qty":1,"ld":0},{"id":"p115","name":"COME POWER 4LTR","company":"Comega","qty":329,"ld":0},{"id":"p116","name":"COME STAR 47% WP 250GM","company":"Comega","qty":930,"ld":0},{"id":"p117","name":"COMEGA ZINC (EXTRA) 3KG","company":"Comega","qty":5,"ld":0},{"id":"p118","name":"COMEGA ZINC 27LTR","company":"Comega","qty":22,"ld":0},{"id":"p119","name":"COMEGA ZINC 3LTR","company":"Comega","qty":1049,"ld":0},{"id":"p120","name":"COMEZONE 200 LTR","company":"Comega","qty":4,"ld":0},{"id":"p121","name":"COMEZONE 27 LTR","company":"Comega","qty":54,"ld":0},{"id":"p122","name":"COMEZONE 3 LTR","company":"Comega","qty":781,"ld":0},{"id":"p123","name":"COMEZONE EXTRA 3 KG","company":"Comega","qty":1178,"ld":8},{"id":"p124","name":"COMEZONE EXTRA 5 KG","company":"Comega","qty":501,"ld":0},{"id":"p125","name":"COMMAN 72WP 250GM","company":"Comega","qty":674,"ld":0},{"id":"p126","name":"COMMAN SUPER 72WP 300 GM","company":"Comega","qty":380,"ld":0},{"id":"p127","name":"COMMAN SUPER 72WP 600GM","company":"Comega","qty":1433,"ld":0},{"id":"p128","name":"COMMRADE 15% EC 500 ML","company":"Comega","qty":659,"ld":0},{"id":"p129","name":"CONOME 5G 7-KG","company":"Comega","qty":2243,"ld":0},{"id":"p130","name":"COUNSLER SUPER 21%EC 1 LTR","company":"Comega","qty":1128,"ld":0},{"id":"p131","name":"CURE 1.8 EC 1LTR","company":"Comega","qty":592,"ld":0},{"id":"p132","name":"DARREL 0.4G 4KG","company":"Comega","qty":1078,"ld":1},{"id":"p133","name":"DARREL SUPER 11.6%SC 100ML","company":"Comega","qty":1147,"ld":0},{"id":"p134","name":"DITRON 20%SG 100GM","company":"Comega","qty":908,"ld":0},{"id":"p135","name":"FED UP 0.4G 6-KG","company":"Comega","qty":951,"ld":0},{"id":"p136","name":"FLOMEGA 50% WG 120GM","company":"Comega","qty":780,"ld":0},{"id":"p137","name":"GANDUM GOLI 56% (TAB) 1.14 KG TIN","company":"Comega","qty":568,"ld":0},{"id":"p138","name":"GANDUM GOLI 56% (TAB) 1.5 KG","company":"Comega","qty":42,"ld":0},{"id":"p139","name":"GARDA PLUS 44% EC 1LTR","company":"Comega","qty":979,"ld":0},{"id":"p140","name":"GENGWEI GOLD 55% SC 1LTR","company":"Comega","qty":1068,"ld":0},{"id":"p141","name":"GOFER 1LTR","company":"Comega","qty":964,"ld":0},{"id":"p142","name":"GOFER 500 ML","company":"Comega","qty":1895,"ld":0},{"id":"p143","name":"GRASTRA 20EC 800ML","company":"Comega","qty":204,"ld":0},{"id":"p144","name":"LANCER 10 EC 250 ML","company":"Comega","qty":12,"ld":0},{"id":"p145","name":"MEGAFUR 20% SC 250 ML","company":"Comega","qty":770,"ld":0},{"id":"p146","name":"MISHWA 200GM","company":"Comega","qty":1010,"ld":0},{"id":"p147","name":"NARCO 10%EC 250ML","company":"Comega","qty":440,"ld":0},{"id":"p148","name":"NARCO 10%EC 62.5 ML","company":"Comega","qty":1020,"ld":0},{"id":"p149","name":"NARCO 15%WP 62.5GM","company":"Comega","qty":600,"ld":0},{"id":"p150","name":"NARCO 2.5% EC 1LTR","company":"Comega","qty":1511,"ld":0},{"id":"p151","name":"NARCO SUPER 22%SC 160 ML","company":"Comega","qty":640,"ld":0},{"id":"p152","name":"NARCO SUPER 22%SC 80 ML","company":"Comega","qty":488,"ld":0},{"id":"p153","name":"NATAK 10% SL 400 ML","company":"Comega","qty":1399,"ld":0},{"id":"p154","name":"NATAK PLUS 50% WDG 50 GM","company":"Comega","qty":1040,"ld":0},{"id":"p155","name":"OVAL 10.8%EC 500 ML","company":"Comega","qty":1077,"ld":0},{"id":"p156","name":"PARASHOOT 20% SL 1 LTR","company":"Comega","qty":510,"ld":0},{"id":"p157","name":"PICOGEN 60WG 100GM","company":"Comega","qty":320,"ld":0},{"id":"p158","name":"PLANK PLUS 10.5%EC 1LTR","company":"Comega","qty":310,"ld":0},{"id":"p159","name":"PLANK PLUS 10.5%EC 1LTR (ALUM)","company":"Comega","qty":192,"ld":0},{"id":"p160","name":"PLUSH 10 KG","company":"Comega","qty":281,"ld":0},{"id":"p161","name":"PLUSH 4LTR","company":"Comega","qty":129,"ld":0},{"id":"p162","name":"PLUSH WS 25 KG","company":"Comega","qty":268,"ld":0},{"id":"p163","name":"PLUSH WS GRANULE 25 KG","company":"Comega","qty":410,"ld":0},{"id":"p164","name":"PROLONG 50 KG","company":"Comega","qty":908,"ld":0},{"id":"p165","name":"PYRAZA 36%WP 350 GM","company":"Comega","qty":498,"ld":0},{"id":"p166","name":"SAGEST 10% EC 1LTR","company":"Comega","qty":699,"ld":0},{"id":"p167","name":"SAGEST 10% EC 500 ML","company":"Comega","qty":478,"ld":0},{"id":"p168","name":"SETTO 75%SP 400 GM","company":"Comega","qty":722,"ld":0},{"id":"p169","name":"SETTO 75%SP 800 GM","company":"Comega","qty":865,"ld":0},{"id":"p170","name":"SINGER 20%SC 250 ML","company":"Comega","qty":1240,"ld":0},{"id":"p171","name":"SQUAD18.7% WDG 250 GM","company":"Comega","qty":439,"ld":0},{"id":"p172","name":"SULMEGA 80%WG 1KG","company":"Comega","qty":220,"ld":4},{"id":"p173","name":"SULMEGA 80%WG 25KG","company":"Comega","qty":71,"ld":0},{"id":"p174","name":"TAAJUAR 10KG","company":"Comega","qty":690,"ld":0},{"id":"p175","name":"TAAJWAR (U.P) 25KG","company":"Comega","qty":338,"ld":0},{"id":"p176","name":"TICKNER 30% WDG 250 GM","company":"Comega","qty":720,"ld":0},{"id":"p177","name":"TRIMMER 70%WP 400 GM","company":"Comega","qty":1137,"ld":0},{"id":"p178","name":"TRIVAX 40 EC 800 ML","company":"Comega","qty":269,"ld":0},{"id":"p179","name":"TROCAR 40% EC 1LTR","company":"Comega","qty":369,"ld":0},{"id":"p180","name":"TROCAR PLUS 18%CF 1LTR","company":"Comega","qty":1684,"ld":0},{"id":"p181","name":"TROOP 33% EC 1LTR","company":"Comega","qty":1664,"ld":0},{"id":"p182","name":"TUNE-UP 1 KG","company":"Comega","qty":996,"ld":0},{"id":"p183","name":"TUNE-UP 500GM","company":"Comega","qty":126,"ld":0},{"id":"p184","name":"WESTA 30 WP 40 GM","company":"Comega","qty":2135,"ld":0},{"id":"p185","name":"WESTA 30 WP 80 GM","company":"Comega","qty":731,"ld":0},{"id":"p186","name":"WINSTA 30%WP 100GM-C","company":"Comega","qty":2017,"ld":0},{"id":"p187","name":"WINSTA 30%WP 50GM-C","company":"Comega","qty":2679,"ld":0},{"id":"p188","name":"WYLASS 48% SL 1LTR","company":"Comega","qty":1296,"ld":0}];
+
+let products = [];
+let history = [];
+let selectedInId = null;
+let selectedOutId = null;
+let inCart = [];
+let outCart = [];
+
+/* ---------- storage ---------- */
+function loadData(){
+  try{
+    const p = localStorage.getItem('sl_products');
+    products = p ? JSON.parse(p) : JSON.parse(JSON.stringify(SEED_PRODUCTS));
+  }catch(e){ products = JSON.parse(JSON.stringify(SEED_PRODUCTS)); }
+  try{
+    const h = localStorage.getItem('sl_history');
+    history = h ? JSON.parse(h) : [];
+  }catch(e){ history = []; }
+  if(!localStorage.getItem('sl_products')) persist();
+}
+function persist(){
+  try{
+    localStorage.setItem('sl_products', JSON.stringify(products));
+    localStorage.setItem('sl_history', JSON.stringify(history));
+  }catch(e){ toast('Storage error — changes may not be saved'); }
+}
+
+/* ---------- helpers ---------- */
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+function fmt(n){ return Number(n).toLocaleString('en-US'); }
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function findProduct(id){ return products.find(p => p.id === id); }
+function nowStr(dateInputVal){
+  let d;
+  if(dateInputVal){
+    const parts = dateInputVal.split('-');
+    d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+    const now = new Date();
+    d.setHours(now.getHours(), now.getMinutes());
+  } else {
+    d = new Date();
+  }
+  return d.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}) + ' \u2022 ' + d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+}
+function todayISO(){
+  const d = new Date();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+/* ---------- stats ---------- */
+function renderStats(){
+  document.getElementById('statProducts').textContent = products.length;
+  document.getElementById('statUnits').textContent = fmt(products.reduce((s,p)=>s+p.qty,0));
+  document.getElementById('statLD').textContent = fmt(products.reduce((s,p)=>s+(p.ld||0),0));
+}
+
+/* ---------- products tab ---------- */
+let activeCoFilter = 'All';
+function renderProducts(){
+  const q = document.getElementById('prodSearch').value.trim().toLowerCase();
+  let list = products.filter(p => p.name.toLowerCase().includes(q));
+  if(activeCoFilter !== 'All') list = list.filter(p => p.company === activeCoFilter);
+  const el = document.getElementById('productList');
+  if(list.length === 0){
+    el.innerHTML = '<div class="empty"><div class="big">\u{1F4E6}</div>No products found.</div>';
+    return;
+  }
+  el.innerHTML = list.map(p => `
+    <div class="pcard">
+      <div class="pcard-top">
+        <div>
+          <div class="pname">${escapeHtml(p.name)}</div>
+          <span class="co-tag ${p.company.toLowerCase()}">${p.company}</span>
+          ${p.company==='Comega' && p.ld>0 ? `<span class="ld-badge">L&amp;D: ${fmt(p.ld)}</span>` : ''}
+        </div>
+        <div class="qty-block">
+          <div class="num">${fmt(p.qty)}</div>
+          <div class="lbl">in stock</div>
+        </div>
+      </div>
+      <div class="pcard-actions">
+        <button class="btn-in" onclick="quickStart('in','${p.id}')">+ Stock In</button>
+        <button class="btn-out" onclick="quickStart('out','${p.id}')">Dispatch</button>
+        ${p.company==='Comega' ? `<button class="btn-ld" onclick="promptLD('${p.id}')">Report L&amp;D</button>` : ''}
+        <button class="btn-del" onclick="deleteProduct('${p.id}')" title="Delete product">\u{1F5D1}</button>
+      </div>
+    </div>
+  `).join('');
+}
+function quickStart(mode, id){
+  switchTab(mode === 'in' ? 'stockin' : 'dispatch');
+  if(mode === 'in') selectInProduct(id); else selectOutProduct(id);
+}
+function deleteProduct(id){
+  const p = findProduct(id);
+  if(!p) return;
+  const ok = confirm(`"${p.name}" ko hamesha ke liye delete karna hai? Iski history records mahfooz rahengi.`);
+  if(!ok) return;
+  products = products.filter(x => x.id !== id);
+  persist();
+  renderAll();
+  toast(`"${p.name}" delete ho gaya`);
+}
+function promptLD(id){
+  const p = findProduct(id);
+  const amt = prompt(`"${p.name}" mein kitne units leak/damage hue? (Available: ${fmt(p.qty)})`);
+  if(amt === null) return;
+  const n = parseInt(amt, 10);
+  if(!n || n <= 0){ toast('Sahi quantity likhein'); return; }
+  if(n > p.qty){ toast('Itni quantity stock mein nahi hai'); return; }
+  p.qty -= n;
+  p.ld = (p.ld || 0) + n;
+  history.unshift({ id: 'h'+Date.now(), type:'LD', productId:p.id, productName:p.name, company:p.company, qty:n, date:nowStr(), ts:Date.now(), batchId:'b'+Date.now()+Math.random().toString(36).slice(2,7) });
+  persist();
+  renderAll();
+  toast(`${n} units "${p.name}" ko Leak & Damage mein move kiya`);
+}
+
+/* ---------- combobox (shared logic) ---------- */
+function setupCombo(inputId, listId, onSelect){
+  const input = document.getElementById(inputId);
+  const list = document.getElementById(listId);
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    if(q.length === 0){ list.classList.remove('open'); list.innerHTML=''; return; }
+    const matches = products.filter(p => p.name.toLowerCase().includes(q)).slice(0, 30);
+    if(matches.length === 0){
+      list.innerHTML = '<div class="combo-item">No matches</div>';
+    }else{
+      list.innerHTML = matches.map(p => `
+        <div class="combo-item" data-id="${p.id}">
+          <div class="ci-name">${escapeHtml(p.name)} <span class="co-tag ${p.company.toLowerCase()}">${p.company}</span></div>
+          <div class="ci-meta">${fmt(p.qty)} in stock${p.company==='Comega'&&p.ld>0?' \u2022 L&D '+fmt(p.ld):''}</div>
+        </div>`).join('');
+    }
+    list.classList.add('open');
+  });
+  input.addEventListener('focus', () => { if(input.value.trim()) list.classList.add('open'); });
+  document.addEventListener('click', (e) => {
+    if(!list.contains(e.target) && e.target !== input) list.classList.remove('open');
+  });
+  list.addEventListener('click', (e) => {
+    const item = e.target.closest('.combo-item');
+    if(!item || !item.dataset.id) return;
+    onSelect(item.dataset.id);
+    list.classList.remove('open');
+  });
+}
+
+function selectInProduct(id){
+  selectedInId = id;
+  const p = findProduct(id);
+  document.getElementById('inSearch').value = p.name;
+}
+function selectOutProduct(id){
+  selectedOutId = id;
+  const p = findProduct(id);
+  document.getElementById('outSearch').value = p.name;
+  const note = document.getElementById('availNote');
+  const alreadyInCart = getCartQtyForProduct(outCart, p.id);
+  note.style.display = 'block';
+  note.innerHTML = `Available: <b>${fmt(p.qty - alreadyInCart)}</b> units${alreadyInCart>0 ? ` (${fmt(alreadyInCart)} already in list)` : ''}`;
+}
+function getCartQtyForProduct(cart, productId){
+  return cart.filter(c => c.productId === productId).reduce((s,c) => s + c.qty, 0);
+}
+
+setupCombo('inSearch', 'inComboList', selectInProduct);
+setupCombo('outSearch', 'outComboList', selectOutProduct);
+
+/* ---------- stock in cart ---------- */
+function renderInCart(){
+  const el = document.getElementById('inCartList');
+  if(inCart.length === 0){
+    el.innerHTML = '<div class="cart-empty">Koi product list mein add nahi hua abhi</div>';
+  }else{
+    el.innerHTML = inCart.map((c, idx) => `
+      <div class="cart-item">
+        <div class="ci-info"><b>${escapeHtml(c.name)} <span class="co-tag ${c.company.toLowerCase()}">${c.company}</span></b><span>+${fmt(c.qty)} units</span></div>
+        <button class="ci-remove" onclick="removeInCartItem(${idx})">&times;</button>
+      </div>`).join('');
+  }
+  document.getElementById('inCartCount').textContent = inCart.length;
+  document.getElementById('inSubmit').disabled = inCart.length === 0;
+}
+function removeInCartItem(idx){ inCart.splice(idx, 1); renderInCart(); }
+
+document.getElementById('inSearch').addEventListener('input', () => { selectedInId = null; });
+document.getElementById('inAddItem').addEventListener('click', () => {
+  const qty = parseInt(document.getElementById('inQty').value, 10);
+  if(!selectedInId){ toast('Pehle list se product select karein'); return; }
+  if(!qty || qty <= 0){ toast('Sahi quantity likhein'); return; }
+  const p = findProduct(selectedInId);
+  const existing = inCart.find(c => c.productId === p.id);
+  if(existing) existing.qty += qty; else inCart.push({productId:p.id, name:p.name, company:p.company, qty});
+  document.getElementById('inSearch').value = '';
+  document.getElementById('inQty').value = '';
+  selectedInId = null;
+  renderInCart();
+});
+document.getElementById('inSubmit').addEventListener('click', () => {
+  if(inCart.length === 0) return;
+  const note = document.getElementById('inNote').value.trim();
+  const batchId = 'b' + Date.now();
+  const dateStr = nowStr(document.getElementById('inDate').value), ts = Date.now();
+  inCart.forEach(c => {
+    const p = findProduct(c.productId);
+    p.qty += c.qty;
+    history.unshift({ id:'h'+Date.now()+Math.random().toString(36).slice(2,7), type:'IN', productId:p.id, productName:p.name, company:p.company, qty:c.qty, note, date:dateStr, ts, batchId });
+  });
+  persist();
+  toast(`${inCart.length} product(s) stock mein add ho gaye`);
+  inCart = [];
+  document.getElementById('inNote').value = '';
+  renderInCart();
+  renderAll();
+});
+
+/* ---------- dispatch cart ---------- */
+function renderOutCart(){
+  const el = document.getElementById('outCartList');
+  if(outCart.length === 0){
+    el.innerHTML = '<div class="cart-empty">Koi product list mein add nahi hua abhi</div>';
+  }else{
+    el.innerHTML = outCart.map((c, idx) => `
+      <div class="cart-item">
+        <div class="ci-info"><b>${escapeHtml(c.name)} <span class="co-tag ${c.company.toLowerCase()}">${c.company}</span></b><span>-${fmt(c.qty)} units</span></div>
+        <button class="ci-remove" onclick="removeOutCartItem(${idx})">&times;</button>
+      </div>`).join('');
+  }
+  document.getElementById('outCartCount').textContent = outCart.length;
+  updateOutSubmit();
+}
+function removeOutCartItem(idx){ outCart.splice(idx, 1); renderOutCart(); }
+
+function updateOutSubmit(){
+  const dealer = document.getElementById('outDealer').value.trim();
+  document.getElementById('outSubmit').disabled = !(outCart.length > 0 && dealer.length > 0);
+}
+document.getElementById('outDealer').addEventListener('input', updateOutSubmit);
+document.getElementById('outSearch').addEventListener('input', () => {
+  selectedOutId = null;
+  document.getElementById('availNote').style.display = 'none';
+});
+document.getElementById('outAddItem').addEventListener('click', () => {
+  const qty = parseInt(document.getElementById('outQty').value, 10);
+  if(!selectedOutId){ toast('Pehle list se product select karein'); return; }
+  if(!qty || qty <= 0){ toast('Sahi quantity likhein'); return; }
+  const p = findProduct(selectedOutId);
+  const alreadyInCart = getCartQtyForProduct(outCart, p.id);
+  if(qty + alreadyInCart > p.qty){
+    toast(`Sirf ${fmt(p.qty - alreadyInCart)} units available hain "${p.name}" ke`);
+    return;
+  }
+  const existing = outCart.find(c => c.productId === p.id);
+  if(existing) existing.qty += qty; else outCart.push({productId:p.id, name:p.name, company:p.company, qty});
+  document.getElementById('outSearch').value = '';
+  document.getElementById('outQty').value = '';
+  selectedOutId = null;
+  document.getElementById('availNote').style.display = 'none';
+  renderOutCart();
+});
+document.getElementById('outSubmit').addEventListener('click', () => {
+  const dealer = document.getElementById('outDealer').value.trim();
+  if(outCart.length === 0 || !dealer) return;
+  const territory = document.getElementById('outTerritory').value.trim();
+  const vehicle = document.getElementById('outVehicle').value.trim();
+  const driver = document.getElementById('outDriver').value.trim();
+  const driverPhone = document.getElementById('outDriverPhone').value.trim();
+  const batchId = 'b' + Date.now();
+  const dateStr = nowStr(document.getElementById('outDate').value), ts = Date.now();
+  outCart.forEach(c => {
+    const p = findProduct(c.productId);
+    p.qty -= c.qty;
+    history.unshift({ id:'h'+Date.now()+Math.random().toString(36).slice(2,7), type:'OUT', productId:p.id, productName:p.name, company:p.company, qty:c.qty, dealer, territory, vehicle, driver, driverPhone, date:dateStr, ts, batchId });
+  });
+  persist();
+  toast(`${outCart.length} product(s) dispatched to ${dealer}`);
+  outCart = [];
+  ['outDealer','outTerritory','outVehicle','outDriver','outDriverPhone'].forEach(id => document.getElementById(id).value = '');
+  renderOutCart();
+  renderAll();
+});
+
+/* ---------- history tab ---------- */
+let activeHistType = 'All';
+function renderHistory(){
+  const q = document.getElementById('histSearch').value.trim().toLowerCase();
+  let filtered = history.filter(h => {
+    const matchesQ = h.productName.toLowerCase().includes(q) || (h.dealer||'').toLowerCase().includes(q);
+    const matchesType = activeHistType === 'All' || h.type === activeHistType;
+    return matchesQ && matchesType;
+  });
+  const el = document.getElementById('historyList');
+  if(filtered.length === 0){
+    el.innerHTML = '<div class="empty"><div class="big">\u{1F4CB}</div>No transactions yet.</div>';
+    return;
+  }
+  // group entries that share a batchId (one dispatch/stock-in can carry multiple products)
+  const groups = [];
+  const indexByBatch = {};
+  filtered.forEach(h => {
+    const key = h.batchId || h.id;
+    if(indexByBatch[key] !== undefined){
+      groups[indexByBatch[key]].items.push(h);
+    }else{
+      indexByBatch[key] = groups.length;
+      groups.push({ batchId:key, type:h.type, date:h.date, dealer:h.dealer, territory:h.territory, vehicle:h.vehicle, driver:h.driver, driverPhone:h.driverPhone, note:h.note, items:[h] });
+    }
+  });
+  const typeLabel = {IN:'STOCK IN', OUT:'DISPATCH', LD:'LEAK/DAMAGE'};
+  el.innerHTML = groups.map(g => `
+    <div class="hist-item">
+      <div class="hist-top">
+        <span class="hist-type ${g.type}">${typeLabel[g.type]}</span>
+        <span class="hist-date">${g.date}</span>
+      </div>
+      ${g.items.map(it => `<div class="hist-pname">${escapeHtml(it.productName)} <span class="co-tag ${it.company.toLowerCase()}" style="margin-left:5px; vertical-align:middle;">${it.company}</span> <span class="hist-qty">${it.type==='OUT'?'-':'+'}${fmt(it.qty)}</span></div>`).join('')}
+      ${g.type==='OUT' ? `
+        <div class="hist-details">
+          <span><b>Dealer:</b> ${escapeHtml(g.dealer||'-')}</span>
+          <span><b>Territory:</b> ${escapeHtml(g.territory||'-')}</span>
+          <span><b>Vehicle:</b> ${escapeHtml(g.vehicle||'-')}</span>
+          <span><b>Driver:</b> ${escapeHtml(g.driver||'-')}</span>
+          <span><b>Phone:</b> ${escapeHtml(g.driverPhone||'-')}</span>
+        </div>` : (g.note ? `<div class="hist-details"><span>${escapeHtml(g.note)}</span></div>` : '')}
+      <button class="hist-delete" onclick="deleteHistoryBatch('${g.batchId}')">Delete this entry</button>
+    </div>
+  `).join('');
+}
+function deleteHistoryBatch(batchId){
+  const entries = history.filter(h => (h.batchId || h.id) === batchId);
+  if(entries.length === 0) return;
+  const first = entries[0];
+  const typeLabel = {IN:'Stock In', OUT:'Dispatch', LD:'Leak/Damage'};
+  const ok = confirm(`Ye ${typeLabel[first.type]} entry delete karein? Stock quantity automatically wapis adjust ho jayegi.`);
+  if(!ok) return;
+  entries.forEach(h => {
+    const p = findProduct(h.productId);
+    if(!p) return;
+    if(h.type === 'IN') p.qty -= h.qty;
+    else if(h.type === 'OUT') p.qty += h.qty;
+    else if(h.type === 'LD'){ p.qty += h.qty; p.ld = Math.max(0, (p.ld||0) - h.qty); }
+  });
+  history = history.filter(h => (h.batchId || h.id) !== batchId);
+  persist();
+  toast('Entry delete ho gayi, stock adjust ho gaya');
+  renderAll();
+}
+
+/* ---------- tabs ---------- */
+function switchTab(name){
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+}
+document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+
+document.getElementById('companyChips').addEventListener('click', (e) => {
+  const chip = e.target.closest('.chip');
+  if(!chip) return;
+  document.querySelectorAll('#companyChips .chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  activeCoFilter = chip.dataset.co;
+  renderProducts();
+});
+document.getElementById('histChips').addEventListener('click', (e) => {
+  const chip = e.target.closest('.chip');
+  if(!chip) return;
+  document.querySelectorAll('#histChips .chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  activeHistType = chip.dataset.type;
+  renderHistory();
+});
+document.getElementById('prodSearch').addEventListener('input', renderProducts);
+document.getElementById('histSearch').addEventListener('input', renderHistory);
+
+/* ---------- export ---------- */
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const headers = ['Product Name','Company','Current Stock','Leak & Damage'];
+  const rows = products.map(p => [p.name, p.company, p.qty, p.ld||0]);
+  let csv = headers.join(',') + '\n';
+  rows.forEach(r => { csv += r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',') + '\n'; });
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'stock_report_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+/* ---------- init ---------- */
+function renderAll(){
+  renderStats();
+  renderProducts();
+  renderHistory();
+}
+loadData();
+renderAll();
+renderInCart();
+renderOutCart();
+document.getElementById('inDate').value = todayISO();
+document.getElementById('outDate').value = todayISO();
+</script>
+</body>
+</html>
